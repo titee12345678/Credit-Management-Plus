@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรแกรมรายรับรายจ่าย</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>โปรแกรมบริหารการใช้บัตรเครดิต</h1>
+            <div class="user-info">
+                <span id="currentUsername">กำลังโหลด...</span>
+                <button class="btn btn-secondary" id="logoutBtn">ออกจากระบบ</button>
+            </div>
+        </header>
+
+        <!-- สรุปวงเงิน -->
+        <div class="budget-section">
+            <div class="budget-header">
+                <h2>วงเงินที่มี</h2>
+                <button class="btn btn-primary" id="editBudgetBtn">ตั้งค่าวงเงิน</button>
+            </div>
+            <div class="budget-cards">
+                <div class="budget-card budget-total">
+                    <h3>วงเงินทั้งหมด</h3>
+                    <p class="amount" id="totalBudget">0.00</p>
+                    <span class="currency">บาท</span>
+                </div>
+                <div class="budget-card budget-used">
+                    <h3>วงเงินที่ใช้ไป</h3>
+                    <p class="amount" id="usedBudget">0.00</p>
+                    <span class="currency">บาท</span>
+                </div>
+                <div class="budget-card budget-remaining">
+                    <h3>วงเงินคงเหลือ</h3>
+                    <p class="amount" id="remainingBudget">0.00</p>
+                    <span class="currency">บาท</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- กราฟสรุปการใช้ -->
+        <div class="charts-section">
+            <h2>กราฟสรุปการใช้งาน</h2>
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>สัดส่วนการใช้วงเงิน</h3>
+                    <canvas id="budgetChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>สถานะการผ่อนชำระ</h3>
+                    <canvas id="paymentStatusChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>ยอดผ่อนรายเดือนแยกตามหมวดหมู่</h3>
+                    <canvas id="monthlyPaymentChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- กราฟสรุปรายปี -->
+        <div class="charts-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">สรุปรายปี</h2>
+                <div>
+                    <label for="yearSelect" style="margin-right: 10px; color: #333; font-weight: 600;">เลือกปี:</label>
+                    <select id="yearSelect" style="padding: 8px 12px; border-radius: 5px; border: 2px solid #667eea; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                        <!-- Years will be populated by JavaScript -->
+                    </select>
+                </div>
+            </div>
+            <div class="chart-card" style="width: 100%;">
+                <h3>รายจ่ายแต่ละเดือน</h3>
+                <canvas id="yearlyChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ปฏิทินการชำระ -->
+        <div class="calendar-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">📅 ปฏิทินการชำระ</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn-calendar-nav" id="prevMonthBtn">◀ เดือนก่อน</button>
+                    <div style="display: flex; gap: 5px;">
+                        <select id="calendarMonthSelect" style="padding: 8px 12px; border-radius: 5px; border: 2px solid #667eea; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                            <option value="1">มกราคม</option>
+                            <option value="2">กุมภาพันธ์</option>
+                            <option value="3">มีนาคม</option>
+                            <option value="4">เมษายน</option>
+                            <option value="5">พฤษภาคม</option>
+                            <option value="6">มิถุนายน</option>
+                            <option value="7">กรกฎาคม</option>
+                            <option value="8">สิงหาคม</option>
+                            <option value="9">กันยายน</option>
+                            <option value="10">ตุลาคม</option>
+                            <option value="11">พฤศจิกายน</option>
+                            <option value="12">ธันวาคม</option>
+                        </select>
+                        <select id="calendarYearSelect" style="padding: 8px 12px; border-radius: 5px; border: 2px solid #667eea; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                            <!-- Years will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    <button class="btn-calendar-nav" id="nextMonthBtn">เดือนถัดไป ▶</button>
+                </div>
+            </div>
+
+            <!-- สรุปยอดเดือนนี้ -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div style="flex: 1;"></div>
+                <button class="btn btn-primary" id="bulkPaymentBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    💰 ชำระยอดเต็มเดือนนี้
+                </button>
+            </div>
+
+            <div class="calendar-summary">
+                <div class="calendar-summary-card total">
+                    <h4>ยอดรวมทั้งหมด</h4>
+                    <p class="amount" id="calendarTotalAmount">0.00</p>
+                    <span class="count" id="calendarTotalCount">0 รายการ</span>
+                </div>
+                <div class="calendar-summary-card paid">
+                    <h4>ชำระแล้ว</h4>
+                    <p class="amount" id="calendarPaidAmount">0.00</p>
+                    <span class="count" id="calendarPaidCount">0 รายการ</span>
+                </div>
+                <div class="calendar-summary-card unpaid">
+                    <h4>ยังไม่ชำระ</h4>
+                    <p class="amount" id="calendarUnpaidAmount">0.00</p>
+                    <span class="count" id="calendarUnpaidCount">0 รายการ</span>
+                </div>
+                <div class="calendar-summary-card overdue">
+                    <h4>เกินกำหนด</h4>
+                    <p class="amount" id="calendarOverdueAmount">0.00</p>
+                    <span class="count" id="calendarOverdueCount">0 รายการ</span>
+                </div>
+            </div>
+
+            <!-- รายการชำระเงิน -->
+            <div class="calendar-payments">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0;">รายการที่ต้องชำระ</h3>
+                    <div class="export-buttons">
+                        <button class="btn-export btn-export-excel" onclick="exportCalendarToExcel()" title="Export Calendar to Excel">
+                            📊 Excel
+                        </button>
+                        <button class="btn-export btn-export-pdf" onclick="exportCalendarToPDF()" title="Export Calendar to PDF">
+                            📄 PDF
+                        </button>
+                        <button class="btn-export btn-export-csv" onclick="exportCalendarToCSV()" title="Export Calendar to CSV">
+                            📋 CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="calendarTable">
+                        <thead>
+                            <tr>
+                                <th>วันครบกำหนด</th>
+                                <th>รายละเอียด</th>
+                                <th>หมวดหมู่</th>
+                                <th>งวดที่</th>
+                                <th>ยอดเงิน</th>
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calendarTableBody">
+                            <!-- ข้อมูลจะถูกแทรกที่นี่ด้วย JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- สรุปยอดรวม -->
+        <div class="summary-section">
+            <div class="summary-card">
+                <h3>ยอดผ่อนรายเดือน</h3>
+                <p class="amount" id="totalMonthly">0.00</p>
+                <span class="currency">บาท</span>
+            </div>
+            <div class="summary-card">
+                <h3>ยอดคงเหลือทั้งหมด</h3>
+                <p class="amount" id="totalRemaining">0.00</p>
+                <span class="currency">บาท</span>
+            </div>
+            <div class="summary-card">
+                <h3>ยอดชำระแล้ว</h3>
+                <p class="amount" id="totalPaid">0.00</p>
+                <span class="currency">บาท</span>
+            </div>
+        </div>
+
+        <!-- ฟอร์มเพิ่มรายการ -->
+        <div class="form-section">
+            <div class="form-header" onclick="toggleForm()">
+                <h2>เพิ่ม/แก้ไขรายการ</h2>
+                <span class="toggle-icon" id="formToggleIcon">▼</span>
+            </div>
+            <form id="expenseForm" class="form-content collapsed">
+                <input type="hidden" id="expenseId">
+                <div class="form-group">
+                    <label for="amount">จำนวนเงิน (บาท)</label>
+                    <input type="number" id="amount" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="installments">จำนวนงวด</label>
+                    <input type="number" id="installments" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="interestRate">อัตราดอกเบี้ย (%)</label>
+                    <input type="number" id="interestRate" step="0.01" value="0" min="0">
+                    <small style="color: #6c757d;">ผ่อน 6-10 งวด = 0.74% | ผ่อน 0 งวด หรือ มากกว่า 10 งวด = 0%</small>
+                </div>
+                <div class="form-group">
+                    <label for="description">รายละเอียด</label>
+                    <input type="text" id="description">
+                </div>
+                <div class="form-group">
+                    <label for="category">หมวดหมู่</label>
+                    <select id="category" required>
+                        <option value="">-- เลือกหมวดหมู่ --</option>
+                        <option value="อาหาร">🍽️ อาหาร</option>
+                        <option value="ท่องเที่ยว">✈️ ท่องเที่ยว</option>
+                        <option value="เครื่องใช้ไฟฟ้า">🔌 เครื่องใช้ไฟฟ้า</option>
+                        <option value="เฟอร์นิเจอร์">🛋️ เฟอร์นิเจอร์</option>
+                        <option value="เสื้อผ้า">👕 เสื้อผ้า</option>
+                        <option value="สุขภาพ">🏥 สุขภาพ</option>
+                        <option value="การศึกษา">📚 การศึกษา</option>
+                        <option value="ยานพาหนะ">🚗 ยานพาหนะ</option>
+                        <option value="น้ำมัน">⛽ น้ำมัน</option>
+                        <option value="ค่าเช่า">🏠 ค่าเช่า</option>
+                        <option value="ความบันเทิง">🎮 ความบันเทิง</option>
+                        <option value="อุปกรณ์กีฬา">⚽ อุปกรณ์กีฬา</option>
+                        <option value="เทคโนโลยี">💻 เทคโนโลยี</option>
+                        <option value="อื่นๆ">📦 อื่นๆ</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="startDate">วันที่เริ่มต้น</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="form-group">
+                    <label for="endDate">ผ่อนหมด</label>
+                    <input type="text" id="endDate" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
+                    <small style="color: #6c757d;">คำนวณอัตโนมัติจากวันที่เริ่มต้นและจำนวนงวด</small>
+                </div>
+                <div class="form-group">
+                    <label for="totalPaid">ยอดชำระแล้ว (บาท)</label>
+                    <input type="number" id="totalPaid" step="0.01" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="installmentsPaid">จำนวนงวดที่ชำระแล้ว</label>
+                    <input type="number" id="installmentsPaid" min="0" value="0">
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ตารางแสดงรายการ -->
+        <div class="table-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <h2 style="margin: 0;">รายการทั้งหมด</h2>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <label for="filterSelect" style="margin-right: 10px; color: #333; font-weight: 600;">กรองรายการ:</label>
+                    <select id="filterSelect" style="padding: 8px 12px; border-radius: 5px; border: 2px solid #667eea; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                        <option value="all">ทั้งหมด</option>
+                        <option value="pending" selected>ค้างชำระ</option>
+                        <option value="paid">ชำระครบแล้ว</option>
+                        <option value="current-month">ต้องชำระเดือนนี้</option>
+                    </select>
+                    <!-- Export Buttons -->
+                    <div class="export-buttons">
+                        <button class="btn-export btn-export-excel" onclick="exportToExcel()" title="Export to Excel">
+                            📊 Excel
+                        </button>
+                        <button class="btn-export btn-export-pdf" onclick="exportToPDF()" title="Export to PDF">
+                            📄 PDF
+                        </button>
+                        <button class="btn-export btn-export-csv" onclick="exportToCSV()" title="Export to CSV">
+                            📋 CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table id="expenseTable">
+                    <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>วันที่เริ่มต้น</th>
+                            <th>ผ่อนหมด</th>
+                            <th>จำนวนเงิน</th>
+                            <th>จำนวนงวด</th>
+                            <th>ยอดผ่อน/เดือน</th>
+                            <th>ผ่อนไปแล้ว</th>
+                            <th>ยอดชำระแล้ว</th>
+                            <th>ยอดคงเหลือ</th>
+                            <th>รายละเอียด</th>
+                            <th>หมวดหมู่</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody">
+                        <!-- ข้อมูลจะถูกแทรกที่นี่ด้วย JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modal สำหรับการชำระเงิน -->
+        <div id="paymentModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>บันทึกการชำระเงิน</h2>
+                <form id="paymentForm">
+                    <input type="hidden" id="paymentExpenseId">
+                    <div class="form-group">
+                        <label for="paymentAmount">จำนวนเงินที่ชำระ (บาท)</label>
+                        <input type="number" id="paymentAmount" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentDate">วันที่ชำระเงิน</label>
+                        <input type="date" id="paymentDate" required>
+                    </div>
+                    <div class="form-buttons">
+                        <button type="submit" class="btn btn-primary">บันทึกการชำระ</button>
+                        <button type="button" class="btn btn-secondary close-modal">ยกเลิก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal สำหรับตั้งค่าวงเงิน -->
+        <div id="budgetModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>ตั้งค่าวงเงิน</h2>
+                <form id="budgetForm">
+                    <div class="form-group">
+                        <label for="budgetAmount">วงเงินทั้งหมด (บาท)</label>
+                        <input type="number" id="budgetAmount" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="budgetDescription">รายละเอียด</label>
+                        <input type="text" id="budgetDescription" placeholder="วงเงินที่ใช้ได้">
+                    </div>
+                    <div class="form-buttons">
+                        <button type="submit" class="btn btn-primary">บันทึก</button>
+                        <button type="button" class="btn btn-secondary close-modal">ยกเลิก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal สำหรับชำระยอดเต็มเดือน -->
+        <div id="bulkPaymentModal" class="modal">
+            <div class="modal-content" style="max-width: 800px;">
+                <span class="close">&times;</span>
+                <h2>ชำระยอดเต็ม - <span id="bulkPaymentMonth"></span></h2>
+
+                <div class="bulk-payment-summary">
+                    <div class="summary-row">
+                        <span>ยอดรวมที่ต้องชำระ:</span>
+                        <strong id="bulkPaymentTotal" style="color: #f5576c; font-size: 1.5em;">0.00 บาท</strong>
+                    </div>
+                </div>
+
+                <form id="bulkPaymentForm">
+                    <div class="bulk-payment-list">
+                        <table class="payment-preview-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%;">
+                                        <input type="checkbox" id="selectAllPayments" checked>
+                                    </th>
+                                    <th style="width: 30%;">รายการ</th>
+                                    <th style="width: 15%;">งวด</th>
+                                    <th style="width: 20%;">ยอดชำระ (บาท)</th>
+                                    <th style="width: 20%;">วันที่ชำระ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bulkPaymentItems">
+                                <!-- จะถูกเติมด้วย JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="form-buttons" style="margin-top: 20px;">
+                        <button type="submit" class="btn btn-primary">✓ ยืนยันการชำระ</button>
+                        <button type="button" class="btn btn-secondary close-modal">ยกเลิก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Custom Notification -->
+        <div id="notification" class="notification">
+            <div class="notification-content">
+                <span class="notification-icon"></span>
+                <span class="notification-message"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="app_bulk_payment.js"></script>
+</body>
+</html>
