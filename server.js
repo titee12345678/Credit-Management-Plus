@@ -376,7 +376,7 @@ app.get('/api/summary', requireAuth, (req, res) => {
     // ดึงข้อมูลวงเงิน
     db.get('SELECT * FROM budget WHERE user_id = ? ORDER BY id DESC LIMIT 1', [userId], (err, budget) => {
       const totalBudget = budget ? budget.total_budget : 0;
-      const usedBudget = totalExpenses;
+      const usedBudget = totalRemaining; // ใช้ยอดคงเหลือ เพื่อให้ลดลงเมื่อจ่ายคืน
       const remainingBudget = totalBudget - usedBudget;
 
       res.json({

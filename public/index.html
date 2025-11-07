@@ -211,12 +211,23 @@
                 </div>
                 <div class="form-group">
                     <label for="installments">จำนวนงวด</label>
-                    <input type="number" id="installments" min="1" required>
+                    <select id="installments" required>
+                        <option value="">-- เลือกจำนวนงวด --</option>
+                        <option value="0">0 งวด (ชำระเต็มจำนวน)</option>
+                        <option value="1">1 งวด</option>
+                        <option value="4">4 งวด</option>
+                        <option value="6">6 งวด</option>
+                        <option value="8">8 งวด</option>
+                        <option value="10">10 งวด</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="interestRate">อัตราดอกเบี้ย (%)</label>
-                    <input type="number" id="interestRate" step="0.01" value="0" min="0">
-                    <small style="color: #6c757d;">ผ่อน 6-10 งวด = 0.74% | ผ่อน 0 งวด หรือ มากกว่า 10 งวด = 0%</small>
+                    <select id="interestRate" disabled>
+                        <option value="0">0%</option>
+                        <option value="0.74">0.74%</option>
+                    </select>
+                    <small style="color: #6c757d;">อัตโนมัติ: 6-10 งวด = 0.74% | อื่นๆ = 0%</small>
                 </div>
                 <div class="form-group">
                     <label for="description">รายละเอียด</label>

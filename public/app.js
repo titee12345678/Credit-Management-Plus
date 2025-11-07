@@ -123,24 +123,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const billingCycleDayField = document.getElementById('billingCycleDay');
     const paymentDueDayField = document.getElementById('paymentDueDay');
 
-    // Auto-calculate interest rate based on installments
+    // Auto-select interest rate based on installments (แนะนำ 0.74% สำหรับ 6-10 งวด)
     if (installmentsField && interestRateField) {
-        installmentsField.addEventListener('input', function() {
-            const installments = parseInt(this.value) || 0;
+        const suggestInterestRate = function() {
+            const installments = parseInt(installmentsField.value) || 0;
             if (installments >= 6 && installments <= 10) {
                 interestRateField.value = '0.74';
             } else {
                 interestRateField.value = '0';
             }
-        });
-        installmentsField.addEventListener('change', function() {
-            const installments = parseInt(this.value) || 0;
-            if (installments >= 6 && installments <= 10) {
-                interestRateField.value = '0.74';
-            } else {
-                interestRateField.value = '0';
-            }
-        });
+        };
+
+        installmentsField.addEventListener('input', suggestInterestRate);
+        installmentsField.addEventListener('change', suggestInterestRate);
     }
 
     if (startDateField && installmentsField) {
